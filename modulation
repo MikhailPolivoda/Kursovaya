@@ -2,19 +2,30 @@
 #include <cstdlib>
 #include<vector>
 #include<string>
-#include<alghrithm>
+#include<algorithm>
 using namespace std;
 
-class Cashier :private Data_Input
+class Cashier //: private Data_Input
 {
 public:
-	Cashier(bool &free, int &id, int &time_end_service)
+	Cashier(bool& free, int& id, int& time_end_service)
 	{
 		this->free = free;
 		this->id = id;
 		this->time_end_service = time_end_service;
 	}
-	
+	bool getCashierFree()
+	{
+		return free;
+	}
+	int getTimeEndService()
+	{
+		return time_end_service;
+	}
+	int getCashierId()
+	{
+		return id;
+	}
 private:
 	bool free;
 	int id;
@@ -25,18 +36,26 @@ private:
 class Client
 {
 public:
-	Client(int &id,int &time_service_end,int &time_expectation, int &time_service)//время конца обслуживания нужно потом для вывода журнала событий
+	Client(int& id,int& cashier_id, int& time_arrival, int& time_service_end, int& time_service)//время конца обслуживания нужно потом для вывода журнала событий
 	{
 		this->id = id;
 		this->time_service = time_service;
 		this->time_service_end = time_service_end;
 		this->time_expectation = time_expectation;
 	}
-	Client(int& id, int& time_arrival,int &time_expectation)
+	Client(int& id, int& time_arrival)
 	{
 		this->id = id;
 		this->time_arrival = time_arrival;
-		this->time_expectation = time_expectation;
+		//this->time_expectation = time_expectation;
+	}
+	int getId()
+	{
+		return id;
+	}
+	int getTimeExpectation()
+	{
+		return time_expectation;
 	}
 	friend bool operator <(const Client& obj1, const Client& obj2);
 protected:
@@ -47,10 +66,10 @@ protected:
 	int time_arrival;//время прибытия
 
 };
- bool operator <(const Client& obj1, const Client& obj2);
- {
-	 return obj1.time_arrival < obj2.time_arrival;
- }
+bool operator <(const Client& obj1, const Client& obj2);
+{
+	return obj1.time_arrival < obj2.time_arrival;
+}
 void modulation()
 {
 	int operating_time = 480;
@@ -60,59 +79,62 @@ void modulation()
 	int service_begin = 2;
 	int service_end = 5;
 	int current_time = 0;
-	int time_expectation=0;
+	int time_expectation = 0;
 	int id_client = 1;
 	int id_worker = 1;
 	int time_service = 0;
 	int time_arrival = 0;//время прибытия
 	int another_id = 0;//очередной id клиента по очереди
+	int cashier_id = 0;
+	int time_service_end = 0;
 	vector<Client> queue;
 	vector<Client> served_clients;
 	vector<Cashier> workers_airport;
 
 	for (int i = 1; i <= number_of_employees; i++)
 	{
-		workers_airport.push_back(1, i);
+		workers_airport.push_back(1, i, 0);
 	}
-	
+
 	while (current_time < operating_time)
 	{
-		current_time += (arrival_begin + rand() % (arrival_end + 1);
-		time_service = (service_begin + rand() % (service_end + 1);
+		current_time += (arrival_begin + rand() % (arrival_end + 1));
+		time_service = (service_begin + rand() % (service_end + 1));
 		time_arrival = current_time;
-		queue.push_back(id,time_arrival,0);
+		queue.push_back(id_client, time_arrival);
 
 		for (auto& cashier : workers_airport)
 		{
-			if (cashier.time_service_end == current_time)//ищем свободных кассиров
+			if (cashier.getTimeEndService() == current_time)//ищем свободных кассиров
 			{
 				cashier.free = 1;
+				cashier.time_end_service = current_time + time_service;//время конца обслуживания кассиром
 			}
-				if (cashier.free == 1)
+			if (cashier.getCashierFree() == 1)
+			{
+
+				cashier.employment += time_service;
+				cashier_id = cashier.getCashierId();
+				time_service_end = current_time + time_service;
+				for (auto& qp : queue)
 				{
-				
-					cashier.employment += time_service;
-						for (auto& qp : queue)
-						{
 
-							if (qp < (qp + 1))//cравниваем время прибытия, чем меньше время прибытия=>тем первее человек в очереди
-							{
-							another_id = qp.id;
-							break;
-							}
-
-						time_expectation = qp.time_expectation;//время ожидания=времени ожидании клиента в очереди
+					if (qp < (qp + 1))//cравниваем время прибытия, чем меньше время прибытия=>тем первее человек в очереди
+					{
+						time_arrival=qp.time_arrival;
+						another_id = qp.getId();
 						break;
-						}
+					}
+   
+					break;
+				}
 
-				cashier.time_service_end = time_service;//время окончания обслуживания кассира=времени обслуживания клиента
-				served_clients.push_back(another_id, current_time + time_service, time_expectation, time_service);//добавляем клиента в вектор обслуженных клиентов
+				served_clients.push_back(another_id,cashier_id, time_arrival, time_service_end, time_service);//добавляем клиента в вектор обслуженных клиентов
 				queue.erase(queue.begin());//удаляем обслуженного клиента из очереди
 				vector<Client>(queue).swap(queue);//освобождаем память из под удаленного элемента
 
-				}
-
-			if (cashier.free == 0) 
+ 
+			if (cashier.free == 0)
 			{
 				for (auto& qp : queue)
 				{
@@ -122,11 +144,21 @@ void modulation()
 						qp.time_expectation += (cashier.time_service_end - current_time);//если кассир занят, то первому человеку в очереди присваиваем время ожидания 
 						break;
 					}
-				
+
 				}
 				break;
 			}
-		id++;
+			id_client++;
 
+		}
+		for (auto obj : served_clients)
+		{
+			cout << obj.time_expectation << endl;
+		}
 	}
-}
+		for (auto obj : served_clients)
+		{
+			cout << "Клиент " << obj.id << "обслужен кассиром " << obj.cashier_id << endl;
+			cout << "Время обслуживания: " << obj.time_service << ", время ожидания: " << obj.time_service_end - obj.time_service - obj.time_arrival << endl;
+		}
+		
